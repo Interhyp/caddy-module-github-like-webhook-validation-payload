@@ -17,18 +17,19 @@ import (
 
 func init() {
 	caddy.RegisterModule(Middleware{})
-	httpcaddyfile.RegisterHandlerDirective("validate_github_webhook_payload", parseCaddyfile)
+	httpcaddyfile.RegisterHandlerDirective("validate_github_like_webhook_payload", parseCaddyfile)
 }
 
 // Middleware implements an HTTP handler.
 type Middleware struct {
-	Secret string `json:"secret,omitempty"`
+	Secret     string `json:"secret,omitempty"`
+	HeaderName string `json:"headerName,omitempty"`
 }
 
 // CaddyModule returns the Caddy module information.
 func (Middleware) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
-		ID:  "http.handlers.github_webhook_validation_payload",
+		ID:  "http.handlers.github_like_webhook_validation_payload",
 		New: func() caddy.Module { return new(Middleware) },
 	}
 }
@@ -36,7 +37,10 @@ func (Middleware) CaddyModule() caddy.ModuleInfo {
 // Validate implements caddy.Validator.
 func (m *Middleware) Validate() error {
 	if m.Secret == "" {
-		return fmt.Errorf("github webhook secret is empty")
+		return fmt.Errorf("webhook secret is empty")
+	}
+	if m.HeaderName == "" {
+		return fmt.Errorf("webhook headerName is empty")
 	}
 
 	return nil
@@ -55,7 +59,7 @@ func (m Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddy
 	}
 	r.Body = io.NopCloser(&buffer)
 
-	actual := []byte(strings.TrimPrefix(r.Header.Get("X-Hub-Signature-256"), "sha256="))
+	actual := []byte(strings.TrimPrefix(r.Header.Get(m.HeaderName), "sha256="))
 
 	mac := hmac.New(sha256.New, []byte(m.Secret))
 	mac.Write(payloadBytes)
@@ -82,8 +86,17 @@ func (m *Middleware) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 		return d.ArgErr()
 	}
 
-	// store the argument
+	// store the secret argument
 	m.Secret = d.Val()
+
+	// headerName is optional argument
+	if d.NextArg() {
+		// store the argument
+		m.HeaderName = d.Val()
+	} else {
+		m.HeaderName = "X-Hub-Signature-256"
+	}
+
 	return nil
 }
 

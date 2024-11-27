@@ -1,6 +1,6 @@
 # Caddy GitHub Webhook Payload Validation Module
 
-This Caddy handler module validates GitHub webhook payloads by using a shared secret. It ensures that the incoming webhooks are legitimate and come from GitHub, thereby enhancing security for your application.
+This Caddy handler module validates all GitHub-Like webhook payloads by using a shared secret. It ensures that the incoming webhooks are legitimate and come from GitHub or for example Spacelift, thereby enhancing security for your application.
 
 ## Directive
 
@@ -9,6 +9,7 @@ The directive for this module is `validate_github_webhook_payload`.
 ## Features
 
 - Validates GitHub webhook payloads.
+- Validates Spacelift webhook payloads.
 - Uses a shared secret to ensure the request integrity.
 - Compatible with Caddy v2.
 
@@ -22,15 +23,15 @@ To use this module, you will need to build Caddy with the module included. Here'
     $ go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
     ```
 
-2. Build Caddy with the `validate_github_webhook_payload` module:
+2. Build Caddy with the `validate_github_like_webhook_payload` module:
 
     ```bash
-    $ xcaddy build --with github.com/Roshick/validate_github_webhook_payload
+    $ xcaddy build --with github.com/Interhyp/validate_github_like_webhook_payload
     ```
 
 ## Configuration
 
-To configure the `validate_github_webhook_payload` directive in your Caddyfile, provide the secret that you will use to validate the webhook payload.
+To configure the `validate_github_like_webhook_payload` directive in your Caddyfile, provide the secret that you will use to validate the webhook payload.
 
 ### Caddyfile Example
 
@@ -41,7 +42,7 @@ To configure the `validate_github_webhook_payload` directive in your Caddyfile, 
 
 :80
 
-validate_github_webhook_payload <your_secret_here>
+validate_github_like_webhook_payload <your_secret_here> <signature_header_field_name_here>
 
 route {
     # Your other directives
@@ -50,6 +51,7 @@ route {
 ```
 
 Replace `<your_secret_here>` with the actual secret that you have configured in your GitHub webhook settings.
+Replace `<signature_header_field_name_here>` with the actual name of header transporting signature of webhook payload. It's `X-Signature-256` for Spacelift or `X-Hub-Signature-256` for Github for example.
 
 ## Usage
 
@@ -75,7 +77,7 @@ The Caddyfile would be:
 
 :80
 
-validate_github_webhook_payload my_super_secret
+validate_github_like_webhook_payload my_super_secret X-Hub-Signature-256
 
 route {
     handle_path /webhook {
@@ -86,7 +88,7 @@ route {
 
 ```
 
-In this example, Caddy will verify the incoming webhook payloads sent to `/webhook` using the secret `my_super_secret`.
+In this example, Caddy will verify the incoming webhook payloads sent to `/webhook` using the secret `my_super_secret` and containg signature inside of `X-Hub-Signature-256` header field.
 
 ## Contribution
 
